@@ -39,7 +39,6 @@ public class SimpleDbHelper extends SQLiteOpenHelper {
     public long insert(final String tableName, final ContentValues values) {
         final SQLiteDatabase db = this.getWritableDatabase();
         final long _id = db.insert(tableName, null, values);
-        db.close();
         return _id;
     }
 
@@ -47,7 +46,6 @@ public class SimpleDbHelper extends SQLiteOpenHelper {
     public int update(final String tableName, final ContentValues values, final String selection, final String[] selectionArgs) {
         final SQLiteDatabase db = this.getWritableDatabase();
         final int rows = db.update(tableName, values, selection, selectionArgs);
-        db.close();
         return rows;
     }
 
@@ -55,7 +53,6 @@ public class SimpleDbHelper extends SQLiteOpenHelper {
     public int delete(final String tableName, final String selection, final String[] selectionArgs) {
         final SQLiteDatabase db = this.getWritableDatabase();
         final int rows = db.delete(tableName, selection, selectionArgs);
-        db.close();
         return rows;
     }
 
