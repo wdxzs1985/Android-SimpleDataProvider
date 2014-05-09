@@ -6,12 +6,12 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-public class SimpleDbHelper extends SQLiteOpenHelper {
+public class DatabaseHelper extends SQLiteOpenHelper {
 
     private final DatabaseBuilder mBuilder;
 
     /*** 构造函数 **/
-    public SimpleDbHelper(final Context context, DatabaseBuilder builder) {
+    public DatabaseHelper(final Context context, DatabaseBuilder builder) {
         super(context, builder.getName(), null, builder.getVersion());
         this.mBuilder = builder;
     }

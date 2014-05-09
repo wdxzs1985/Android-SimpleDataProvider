@@ -15,7 +15,7 @@ public class BaseContentProvider extends ContentProvider {
     private final String mAuthrity;
     private final String mTable;
     private DatabaseBuilder mDbBuilder = null;
-    private SimpleDbHelper mDbHelper = null;
+    private DatabaseHelper mDbHelper = null;
     private DataProviderTemplate mProvider = null;
     private UriMatcher mUriMatcher = null;
     private Uri mRootUri = null;
@@ -28,7 +28,7 @@ public class BaseContentProvider extends ContentProvider {
 
     @Override
     public boolean onCreate() {
-        this.mDbHelper = new SimpleDbHelper(this.getContext(), this.mDbBuilder);
+        this.mDbHelper = new DatabaseHelper(this.getContext(), this.mDbBuilder);
         this.mProvider = new DataProviderTemplate(this.mDbHelper, this.mTable);
         this.mUriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
         this.mUriMatcher.addURI(this.mAuthrity,

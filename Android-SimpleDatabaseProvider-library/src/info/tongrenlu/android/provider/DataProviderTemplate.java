@@ -9,10 +9,10 @@ public class DataProviderTemplate {
 
     public static final String SINGLE_SELECTION = "_ID = ?";
 
-    private final SimpleDbHelper mDBHelper;
+    private final DatabaseHelper mDBHelper;
     private final String mTable;
 
-    public DataProviderTemplate(final SimpleDbHelper dBHelper, final String table) {
+    public DataProviderTemplate(final DatabaseHelper dBHelper, final String table) {
         this.mDBHelper = dBHelper;
         this.mTable = table;
     }
