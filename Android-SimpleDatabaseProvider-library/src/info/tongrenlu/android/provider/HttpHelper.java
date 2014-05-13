@@ -12,6 +12,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpMessage;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpVersion;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CookieStore;
@@ -32,7 +33,9 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
+import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
@@ -41,7 +44,7 @@ import org.json.JSONObject;
 
 public class HttpHelper {
 
-    public static final String UTF8 = "utf-8";
+    public static final String UTF8 = "UTF-8";
 
     private final HttpClient client;
     private final CookieStore cookieStore;
@@ -52,9 +55,16 @@ public class HttpHelper {
     private String useragent = null;
 
     public HttpHelper() {
-        HttpParams httpParams = new BasicHttpParams();
-        httpParams.setParameter(ClientPNames.COOKIE_POLICY,
-                                CookiePolicy.BROWSER_COMPATIBILITY);
+        HttpParams params = new BasicHttpParams();
+        params.setParameter(ClientPNames.COOKIE_POLICY,
+                            CookiePolicy.BROWSER_COMPATIBILITY);
+
+        HttpConnectionParams.setSocketBufferSize(params, 4096); // ソケットバッファサイズ
+                                                                // 4KB
+        HttpConnectionParams.setSoTimeout(params, 20000); // ソケット通信タイムアウト20秒
+        HttpConnectionParams.setConnectionTimeout(params, 20000); // HTTP通信タイムアウト20秒
+        HttpProtocolParams.setContentCharset(params, UTF8); // 文字コードをUTF-8と明示
+        HttpProtocolParams.setVersion(params, HttpVersion.HTTP_1_1); // HTTP1.1
 
         final SchemeRegistry schemeRegistry = new SchemeRegistry();
         schemeRegistry.register(new Scheme("http",
@@ -63,9 +73,9 @@ public class HttpHelper {
         schemeRegistry.register(new Scheme("https",
                                            SSLSocketFactory.getSocketFactory(),
                                            443));
-        ThreadSafeClientConnManager manager = new ThreadSafeClientConnManager(httpParams,
+        ThreadSafeClientConnManager manager = new ThreadSafeClientConnManager(params,
                                                                               schemeRegistry);
-        this.client = new DefaultHttpClient(manager, httpParams);
+        this.client = new DefaultHttpClient(manager, params);
 
         this.cookieStore = new BasicCookieStore();
         this.localContext = new BasicHttpContext();
@@ -84,6 +94,7 @@ public class HttpHelper {
         try {
             response = this.client.execute(httpget, this.localContext);
         } catch (final ClientProtocolException e) {
+            FileUtils.deleteQuietly(this.cookieFile);
             this.cookieStore.clear();
             throw e;
         }
@@ -94,7 +105,7 @@ public class HttpHelper {
         HttpResponse response = this.get(url);
         final HttpEntity entity = response.getEntity();
         // Consume response content
-        String result = EntityUtils.toString(entity, UTF8);
+        String result = GzipEntity.entityToString(entity, UTF8);
         entity.consumeContent();
 
         this.setReferer(url);
@@ -105,7 +116,7 @@ public class HttpHelper {
         HttpResponse response = this.get(url);
         final HttpEntity entity = response.getEntity();
         // Consume response content
-        String json = EntityUtils.toString(entity, UTF8);
+        String json = GzipEntity.entityToString(entity, UTF8);
         entity.consumeContent();
         return new JSONObject(json);
     }
@@ -133,6 +144,7 @@ public class HttpHelper {
             response = this.client.execute(httppost, this.localContext);
 
         } catch (final ClientProtocolException e) {
+            FileUtils.deleteQuietly(this.cookieFile);
             this.cookieStore.clear();
             throw e;
         }
@@ -143,7 +155,7 @@ public class HttpHelper {
         HttpResponse response = this.post(url, nvps);
         final HttpEntity entity = response.getEntity();
         // Consume response content
-        String result = EntityUtils.toString(entity, UTF8);
+        String result = GzipEntity.entityToString(entity, UTF8);
         entity.consumeContent();
         this.setReferer(url);
         return result;
@@ -153,7 +165,7 @@ public class HttpHelper {
         HttpResponse response = this.post(url, nvps);
         final HttpEntity entity = response.getEntity();
         // Consume response content
-        String json = EntityUtils.toString(entity, UTF8);
+        String json = GzipEntity.entityToString(entity, UTF8);
         entity.consumeContent();
         return new JSONObject(json);
     }
@@ -161,7 +173,7 @@ public class HttpHelper {
     protected void initHttpHeader(final HttpMessage httpMessage) {
         httpMessage.addHeader("Accept",
                               "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-        httpMessage.addHeader("Accept-Charset", "UTF-8;");
+        httpMessage.addHeader("Accept-Charset", UTF8);
         httpMessage.addHeader("Accept-Encoding", "gzip, deflate");
         httpMessage.addHeader("Accept-Language", "ja,en-US;q=0.8,en;q=0.6");
         httpMessage.addHeader("Cache-Control", "max-age=0");
