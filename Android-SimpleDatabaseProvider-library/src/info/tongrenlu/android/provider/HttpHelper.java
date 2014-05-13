@@ -94,7 +94,7 @@ public class HttpHelper {
         HttpResponse response = this.get(url);
         final HttpEntity entity = response.getEntity();
         // Consume response content
-        String result = EntityUtils.toString(entity);
+        String result = EntityUtils.toString(entity, UTF8);
         entity.consumeContent();
 
         this.setReferer(url);
@@ -105,7 +105,7 @@ public class HttpHelper {
         HttpResponse response = this.get(url);
         final HttpEntity entity = response.getEntity();
         // Consume response content
-        String json = EntityUtils.toString(entity);
+        String json = EntityUtils.toString(entity, UTF8);
         entity.consumeContent();
         return new JSONObject(json);
     }
@@ -143,7 +143,7 @@ public class HttpHelper {
         HttpResponse response = this.post(url, nvps);
         final HttpEntity entity = response.getEntity();
         // Consume response content
-        String result = EntityUtils.toString(entity);
+        String result = EntityUtils.toString(entity, UTF8);
         entity.consumeContent();
         this.setReferer(url);
         return result;
@@ -153,7 +153,7 @@ public class HttpHelper {
         HttpResponse response = this.post(url, nvps);
         final HttpEntity entity = response.getEntity();
         // Consume response content
-        String json = EntityUtils.toString(entity);
+        String json = EntityUtils.toString(entity, UTF8);
         entity.consumeContent();
         return new JSONObject(json);
     }
@@ -178,7 +178,8 @@ public class HttpHelper {
     public void loadCookie(final File cookieFile) {
         this.cookieFile = cookieFile;
         try {
-            final List<String> lines = FileUtils.readLines(cookieFile, "utf-8");
+            FileUtils.touch(cookieFile);
+            final List<String> lines = FileUtils.readLines(cookieFile, UTF8);
             for (final String line : lines) {
                 final String[] cookieValue = StringUtils.split(line, ";");
                 final String[] nameValue = StringUtils.split(cookieValue[0],
@@ -225,7 +226,7 @@ public class HttpHelper {
             }
             if (CollectionUtils.isNotEmpty(lines)) {
                 try {
-                    FileUtils.writeLines(this.cookieFile, "utf-8", lines);
+                    FileUtils.writeLines(this.cookieFile, UTF8, lines);
                 } catch (final IOException e) {
                     e.printStackTrace();
                 }
@@ -264,7 +265,7 @@ public class HttpHelper {
     }
 
     public String getReferer() {
-        return referer;
+        return this.referer;
     }
 
     public void setReferer(String referer) {
