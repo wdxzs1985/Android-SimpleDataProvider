@@ -37,7 +37,6 @@ import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.BasicHttpContext;
-import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -48,7 +47,6 @@ public class HttpHelper {
 
     private final HttpClient client;
     private final CookieStore cookieStore;
-    private final HttpContext localContext;
     private File cookieFile = null;
 
     private String referer = null;
@@ -58,7 +56,6 @@ public class HttpHelper {
         HttpParams params = new BasicHttpParams();
         params.setParameter(ClientPNames.COOKIE_POLICY,
                             CookiePolicy.BROWSER_COMPATIBILITY);
-
         HttpConnectionParams.setSocketBufferSize(params, 4096); // ソケットバッファサイズ
                                                                 // 4KB
         HttpConnectionParams.setSoTimeout(params, 20000); // ソケット通信タイムアウト20秒
@@ -78,10 +75,6 @@ public class HttpHelper {
         this.client = new DefaultHttpClient(manager, params);
 
         this.cookieStore = new BasicCookieStore();
-        this.localContext = new BasicHttpContext();
-        // Bind custom cookie store to the local context
-        this.localContext.setAttribute(ClientContext.COOKIE_STORE,
-                                       this.cookieStore);
     }
 
     public HttpResponse get(final String url) throws IOException {
@@ -92,7 +85,11 @@ public class HttpHelper {
         this.initHttpHeader(httpget);
         HttpResponse response = null;
         try {
-            response = this.client.execute(httpget, this.localContext);
+            BasicHttpContext localContext = new BasicHttpContext();
+            // Bind custom cookie store to the local context
+            localContext.setAttribute(ClientContext.COOKIE_STORE,
+                                      this.cookieStore);
+            response = this.client.execute(httpget, localContext);
         } catch (final ClientProtocolException e) {
             FileUtils.deleteQuietly(this.cookieFile);
             this.cookieStore.clear();
@@ -109,6 +106,7 @@ public class HttpHelper {
         entity.consumeContent();
 
         this.setReferer(url);
+        this.saveCookie();
         return result;
     }
 
@@ -140,8 +138,12 @@ public class HttpHelper {
         this.initHttpHeader(httppost);
         HttpResponse response = null;
         try {
+            BasicHttpContext localContext = new BasicHttpContext();
+            // Bind custom cookie store to the local context
+            localContext.setAttribute(ClientContext.COOKIE_STORE,
+                                      this.cookieStore);
             httppost.setEntity(new UrlEncodedFormEntity(nvps, UTF8));
-            response = this.client.execute(httppost, this.localContext);
+            response = this.client.execute(httppost, localContext);
 
         } catch (final ClientProtocolException e) {
             FileUtils.deleteQuietly(this.cookieFile);
@@ -158,6 +160,7 @@ public class HttpHelper {
         String result = GzipEntity.entityToString(entity, UTF8);
         entity.consumeContent();
         this.setReferer(url);
+        this.saveCookie();
         return result;
     }
 
@@ -206,16 +209,14 @@ public class HttpHelper {
                                                                       "=")[1]);
                 final boolean secure = Boolean.valueOf(StringUtils.split(cookieValue[5],
                                                                          "=")[1]);
-                if (expires <= System.currentTimeMillis()) {
-                    final BasicClientCookie cookie = new BasicClientCookie(name,
-                                                                           value);
-                    cookie.setDomain(domain);
-                    cookie.setPath(path);
-                    cookie.setExpiryDate(new Date(expires));
-                    cookie.setVersion(version);
-                    cookie.setSecure(secure);
-                    this.cookieStore.addCookie(cookie);
-                }
+                final BasicClientCookie cookie = new BasicClientCookie(name,
+                                                                       value);
+                cookie.setDomain(domain);
+                cookie.setPath(path);
+                cookie.setExpiryDate(new Date(expires));
+                cookie.setVersion(version);
+                cookie.setSecure(secure);
+                this.cookieStore.addCookie(cookie);
             }
         } catch (final IOException e) {
             e.printStackTrace();
